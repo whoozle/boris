@@ -6,10 +6,40 @@ import os.path
 import re
 
 class Tokenizer(object):
-	def __init__(self, data, old, new):
-		self.__old = old
-		self.__new = new
-		self.__data = data
+	spacer = re.compile(r'\s+')
+	nl = re.compile(r'\n')
+
+	def __init__(self, path, data, tab_size):
+		self.__path = path
+		self.__data = Tokenizer.nl.split(data)
+		self.__tab = tab_size
+		self.__map = []
+
+	def get_visual_size(self, line):
+		tabs = line.count('\t')
+		return len(line) + tabs * (self.__tab - 1)
+
+	def fix_alignment(self, lineno, replacement, match):
+		begin, end = match.start(), match.end()
+		line = self.__data[lineno]
+		prefix, suffix = line[:begin], line[end:]
+		next_align = Tokenizer.spacer.match(suffix)
+		replacement = prefix + replacement + suffix
+		if not next_align:
+			print "-", line
+			print "+", replacement
+			#replace and return
+			return
+
+		offset = end + next_align.end()
+		vs_offset = self.get_visual_size(line[:offset])
+		print replacement, vs_offset
+
+	def replace(self, old, new):
+		for lineno in xrange(0, len(self.__data)):
+			line = self.__data[lineno]
+			for match in old.finditer(line):
+				self.fix_alignment(lineno, new, match)
 
 class Boris(object):
 	def __init__(self, args):
@@ -17,7 +47,7 @@ class Boris(object):
 		self.tab_size = args.tab
 		self.__filter = set([('.' + x if x[0] != '.' else x) for x in args.filter.split(',')])
 		self.__old = re.compile(args.old)
-		self.__new = re.compile(args.new)
+		self.__new = args.new #fixme: replace groups here
 
 	def process_file(self, path):
 		_p, ext = os.path.splitext(path)
@@ -27,7 +57,8 @@ class Boris(object):
 		with open(path) as fd:
 			data = fd.read()
 
-		tok = Tokenizer(data, self.__old, self.__new)
+		tok = Tokenizer(path, data, self.tab_size)
+		tok.replace(self.__old, self.__new)
 
 	def process_path(self, path):
 		if os.path.isfile(path):
@@ -41,7 +72,7 @@ parser = argparse.ArgumentParser(description='Mass replace indent-saving tool')
 parser.add_argument('old', help='old pattern')
 parser.add_argument('new', help='new pattern')
 parser.add_argument('path', help='files/directories to replace', nargs=1)
-parser.add_argument('-t', '--tab-size', dest='tab', type=int, default=4)
+parser.add_argument('-t', '--tab-size', help='tab size, default 4', dest='tab', type=int, default=4)
 parser.add_argument('-e', '--extensions', dest='filter')
 
 args = parser.parse_args()
