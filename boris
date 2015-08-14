@@ -1,0 +1,52 @@
+#!/usr/bin/env python
+
+import argparse
+import os
+import os.path
+import re
+
+class Tokenizer(object):
+	def __init__(self, data, old, new):
+		self.__old = old
+		self.__new = new
+		self.__data = data
+
+class Boris(object):
+	def __init__(self, args):
+		self.args = args
+		self.tab_size = args.tab
+		self.__filter = set([('.' + x if x[0] != '.' else x) for x in args.filter.split(',')])
+		self.__old = re.compile(args.old)
+		self.__new = re.compile(args.new)
+
+	def process_file(self, path):
+		_p, ext = os.path.splitext(path)
+		if self.__filter and ext not in self.__filter:
+			return
+
+		with open(path) as fd:
+			data = fd.read()
+
+		tok = Tokenizer(data, self.__old, self.__new)
+
+	def process_path(self, path):
+		if os.path.isfile(path):
+			self.process_file(path)
+		else:
+			for root, dirs, files in os.walk(path):
+				for file in files:
+					self.process_file(os.path.join(root, file))
+
+parser = argparse.ArgumentParser(description='Mass replace indent-saving tool')
+parser.add_argument('old', help='old pattern')
+parser.add_argument('new', help='new pattern')
+parser.add_argument('path', help='files/directories to replace', nargs=1)
+parser.add_argument('-t', '--tab-size', dest='tab', type=int, default=4)
+parser.add_argument('-e', '--extensions', dest='filter')
+
+args = parser.parse_args()
+
+rpl = Boris(args)
+
+for path in args.path:
+	rpl.process_path(path)
