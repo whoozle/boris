@@ -19,6 +19,36 @@ class Tokenizer(object):
 		tabs = line.count('\t')
 		return len(line) + tabs * (self.__tab - 1)
 
+	def scan_line(self, lineno, offset, vs_offset):
+		line = self.__data[lineno]
+		vp = 0
+		line_len = len(line)
+		for idx in xrange(0, line_len):
+			if line[idx] == '\t':
+				vs_offset -= self.__tab
+			else:
+				vs_offset -= 1
+
+			if vs_offset < 0:
+				return False
+			elif vs_offset == 0:
+				return idx + 1 == offset
+
+	def scan_context(self, lineno, offset, vs_offset):
+		begin, end = lineno, lineno
+
+		while begin > 0:
+			if not self.scan_line(begin, offset, vs_offset):
+				break
+			begin -= 1
+
+		while end < len(self.__data) - 1:
+			if not self.scan_line(end, offset, vs_offset):
+				break
+			end += 1
+		print begin, " - ", end
+
+
 	def fix_alignment(self, lineno, replacement, match):
 		begin, end = match.start(), match.end()
 		line = self.__data[lineno]
@@ -33,7 +63,7 @@ class Tokenizer(object):
 
 		offset = end + next_align.end()
 		vs_offset = self.get_visual_size(line[:offset])
-		print replacement, vs_offset
+		self.scan_context(lineno, offset, vs_offset)
 
 	def replace(self, old, new):
 		for lineno in xrange(0, len(self.__data)):
