@@ -4,6 +4,7 @@ import argparse
 import os
 import os.path
 import re
+import sys
 
 class Tokenizer(object):
 	spacer = re.compile(r'\s+')
@@ -42,12 +43,16 @@ class Tokenizer(object):
 				break
 			begin -= 1
 
-		while end < len(self.__data) - 1:
+		while end < len(self.__data):
+			end += 1
 			if not self.scan_line(end, offset, vs_offset):
 				break
-			end += 1
-		print begin, " - ", end
 
+		print "boris %s" %(" ".join(sys.argv))
+		print "--- %s" %(os.path.join('a', self.__path))
+		print "+++ %s" %(os.path.join('b', self.__path))
+		for idx in xrange(begin, end):
+			print self.__data[idx]
 
 	def fix_alignment(self, lineno, replacement, match):
 		begin, end = match.start(), match.end()
