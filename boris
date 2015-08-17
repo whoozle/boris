@@ -51,8 +51,11 @@ class Tokenizer(object):
 		print "boris %s" %(" ".join(sys.argv))
 		print "--- %s" %(os.path.join('a', self.__path))
 		print "+++ %s" %(os.path.join('b', self.__path))
+		print "@@ -%d,%d, +%d,%d @@" %(begin, end - begin, begin, end - begin)
 		for idx in xrange(begin, end):
-			print self.__data[idx]
+			print "-%s" %self.__data[idx]
+		for idx in xrange(begin, end):
+			print "+%s" %self.__data[idx]
 
 	def fix_alignment(self, lineno, replacement, match):
 		begin, end = match.start(), match.end()
