@@ -7,8 +7,8 @@ import re
 import sys
 
 class Patcher(object):
-	def replace_lines(self, path, data, line, match, replacement):
-		print "replacing line ", line
+	def replace_lines(self, path, data, line, match, replacement, fix = None):
+		print "replacing line ", line, fix
 		pass
 
 class Tokenizer(object):
@@ -69,7 +69,7 @@ class Tokenizer(object):
 		offset = end + next_align.end()
 		vs_offset = self.get_visual_size(line[:offset])
 		line1, line2 = self.scan_context(lineno, offset, vs_offset)
-		self.__patch.replace_lines(self.__path, self.__data, (line1, line2), match, replacement)
+		self.__patch.replace_lines(self.__path, self.__data, lineno, match, replacement, (line1, line2))
 
 	def replace(self, old, new):
 		for lineno in xrange(0, len(self.__data)):
