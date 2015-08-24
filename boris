@@ -6,11 +6,17 @@ import os.path
 import re
 import sys
 
+class Patcher(object):
+	def replace_lines(self, path, data, line, match, replacement):
+		print "replacing line ", line
+		pass
+
 class Tokenizer(object):
 	spacer = re.compile(r'\s+')
 	nl = re.compile(r'\n')
 
-	def __init__(self, path, data, tab_size):
+	def __init__(self, patch, path, data, tab_size):
+		self.__patch = patch
 		self.__path = path
 		self.__data = Tokenizer.nl.split(data)
 		self.__tab = tab_size
@@ -48,41 +54,34 @@ class Tokenizer(object):
 			if not self.scan_line(end, offset, vs_offset):
 				break
 
-		print "boris %s" %(" ".join(sys.argv))
-		print "--- %s" %(os.path.join('a', self.__path))
-		print "+++ %s" %(os.path.join('b', self.__path))
-		print "@@ -%d,%d, +%d,%d @@" %(begin, end - begin, begin, end - begin)
-		for idx in xrange(begin, end):
-			print "-%s" %self.__data[idx]
-		for idx in xrange(begin, end):
-			print "+%s" %self.__data[idx]
+		return begin, end
 
-	def fix_alignment(self, lineno, replacement, match):
+	def process_match(self, lineno, replacement, match):
 		begin, end = match.start(), match.end()
 		line = self.__data[lineno]
 		prefix, suffix = line[:begin], line[end:]
 		next_align = Tokenizer.spacer.match(suffix)
 		replacement = prefix + replacement + suffix
 		if not next_align:
-			print "-", line
-			print "+", replacement
-			#replace and return
+			self.__patch.replace_lines(self.__path, self.__data, lineno, match, replacement)
 			return
 
 		offset = end + next_align.end()
 		vs_offset = self.get_visual_size(line[:offset])
-		self.scan_context(lineno, offset, vs_offset)
+		line1, line2 = self.scan_context(lineno, offset, vs_offset)
+		self.__patch.replace_lines(self.__path, self.__data, (line1, line2), match, replacement)
 
 	def replace(self, old, new):
 		for lineno in xrange(0, len(self.__data)):
 			line = self.__data[lineno]
 			for match in old.finditer(line):
-				self.fix_alignment(lineno, new, match)
+				self.process_match(lineno, new, match)
 
 class Boris(object):
 	def __init__(self, args):
 		self.args = args
 		self.tab_size = args.tab
+		self.__patch = Patcher()
 		self.__filter = set([('.' + x if x[0] != '.' else x) for x in args.filter.split(',')])
 		self.__old = re.compile(args.old)
 		self.__new = args.new #fixme: replace groups here
@@ -95,7 +94,7 @@ class Boris(object):
 		with open(path) as fd:
 			data = fd.read()
 
-		tok = Tokenizer(path, data, self.tab_size)
+		tok = Tokenizer(self.__patch, path, data, self.tab_size)
 		tok.replace(self.__old, self.__new)
 
 	def process_path(self, path):
