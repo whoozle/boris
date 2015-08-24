@@ -99,6 +99,8 @@ class Boris(object):
 		tok.replace(self.__old, self.__new)
 
 	def process_path(self, path):
+		if not os.path.exists(path):
+			raise OSError(2, 'No such file or directory', path)
 		if os.path.isfile(path):
 			self.process_file(path)
 		else:
